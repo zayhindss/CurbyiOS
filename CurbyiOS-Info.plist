@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>MBXAccessToken</key>
+	<string>sk.eyJ1IjoiZGlydGlzaHV0IiwiYSI6ImNtbDgzbDFsNzAzYTkzZXBqcTNvMGw5ZzIifQ.9EDXI_iMMmSXvU8c83K0zQ</string>
+	<key>BACKEND_BASE_URL</key>
+	<string>http://192.168.1.86:5049/</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Curby uses your location to show hazards around you.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>138.47.108.226</key>
+			<dict>
+				<key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
+</dict>
+</plist>
