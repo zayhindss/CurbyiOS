@@ -1,0 +1,191 @@
+# Curby iOS
+
+**A real-time road hazard mapping and trip planning app for iOS.**
+
+Curby is a community-driven and AI-augmented road safety application that displays hazards on an interactive Mapbox map. Users can report hazards manually, view detections from automated camera/dashcam systems, and plan safer driving routes that avoid known danger zones.
+
+> Built with SwiftUI · Mapbox Maps SDK · MapKit · SwiftData · CoreLocation
+
+---
+
+## Features
+
+### Interactive Hazard Map
+- Real-time hazard visualization on a Mapbox-powered map with custom pin annotations
+- Color-coded pins distinguish between **manual user reports** (orange) and **ML camera detections** (blue)
+- Severity rings highlight high-priority hazards (severity 3–5)
+- Coordinate-based clustering groups overlapping hazards with tap-to-expand detail views
+- Auto-refresh every 15 seconds to pick up new detections from the backend
+- User location tracking with bearing-aware puck display
+
+### Hazard Reporting
+- Report any of **55+ hazard types** — from potholes and speed bumps to construction zones and road barriers
+- Drag-to-place pin system built on Mapbox View Annotations for precise location selection
+- Adjustable severity scale (1–5) and optional notes per report
+- Automatic road segment ID generation based on coordinates
+
+### Safer Trip Planner
+- Enter a destination and Curby evaluates all available driving routes from Apple's MapKit Directions API
+- Routes are scored based on proximity to known hazards using a weighted risk algorithm that factors in severity and distance
+- Displays the safest route on a preview map with distance, duration, and hazard hit count
+- One-tap handoff to Apple Maps for turn-by-turn navigation
+
+### User Profiles & Management
+- Authentication system with login and registration via a backend REST API
+- Profile view showing all hazards posted by the current user
+- Delete your own hazards directly from the profile (removes them for all users)
+
+---
+
+## Architecture Overview
+
+```
+CurbyiOS/
+├── CurbyiOSApp.swift # App entry point, SwiftData container, AuthManager injection
+├── ContentView.swift # All views: Auth, Map, Hazard CRUD, Trip Planner, Profile
+├── CurbyDto.swift # DTOs, request models, HazardType enum (55+ types w/ SF Symbols)
+├── MapboxMapView.swift # UIViewRepresentable Mapbox map with annotation clustering
+├── Item.swift # SwiftData @Model for local hazard persistence
+├── CurbyiOS-Info.plist # Mapbox token, backend URL, ATS configuration
+├── CurbyiOS-Bridging-Header.h # Objective-C bridging (currently empty)
+├── CurbyiOSTests/ # Unit test target (XCTest scaffold)
+└── CurbyiOSUITests/ # UI test target (XCUITest scaffold)
+```
+
+### Key Components
+
+| Component | Responsibility |
+|-----------|---------------|
+| `AuthManager` | Observable login/registration state, async API calls, session management |
+| `LocationManager` | CLLocationManager wrapper, publishes coordinates and auth status |
+| `MapboxMapView` | UIViewRepresentable bridging Mapbox SDK with SwiftUI; handles annotations, clustering, camera events |
+| `MapHomeView` | Main screen: map display, hazard overlay, auto-refresh timer, bottom bar navigation |
+| `TripPlannerView` | Destination search with MKLocalSearchCompleter, multi-route scoring, Apple Maps handoff |
+| `AddHazardView` | Hazard creation form with type picker, draggable pin placement, severity slider |
+| `ProfileView` | User info, hazard history, delete functionality |
+| `HazardType` | Enum mapping 55+ hazard class names to SF Symbols with fuzzy string matching |
+| `APIClient` | Singleton networking layer (referenced but defined externally — see Backend Requirements) |
+
+---
+
+## Requirements
+
+- **iOS 16.0+**
+- **Xcode 15+**
+- **Swift 5.9+**
+- **Mapbox Maps SDK for iOS** (v11+)
+- A running instance of the Curby backend API
+
+---
+
+## Getting Started
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/zayhindss/CurbyiOS.git
+cd CurbyiOS
+```
+
+### 2. Unzip the Xcode Project
+
+The `.xcodeproj` is distributed as a zip archive:
+
+```bash
+unzip CurbyiOS.xcodeproj.zip
+```
+
+### 3. Configure Mapbox
+
+The app uses the Mapbox Maps SDK. You'll need a Mapbox access token:
+
+1. Create a free account at [mapbox.com](https://www.mapbox.com/)
+2. Generate a secret access token with the `Downloads:Read` scope
+3. Update `MBXAccessToken` in `CurbyiOS-Info.plist` with your token
+4. Follow Mapbox's [iOS installation guide](https://docs.mapbox.com/ios/maps/guides/install/) to add the SDK via Swift Package Manager
+
+### 4. Configure the Backend URL
+
+Update `BACKEND_BASE_URL` in `CurbyiOS-Info.plist` to point to your running Curby backend instance:
+
+```xml
+<key>BACKEND_BASE_URL</key>
+<string>http://YOUR_BACKEND_IP:5049/</string>
+```
+
+### 5. Implement APIClient
+
+The app references an `APIClient` singleton that is not included in this repository. You must provide an implementation that conforms to the following interface:
+
+```swift
+final class APIClient {
+static let shared = APIClient()
+
+func login(usernameOrEmail: String, password: String) async throws -> AuthResponse
+func register(email: String, password: String, username: String?, displayName: String?, deviceId: String?) async throws -> AuthResponse
+func getHazards() async throws -> [HazardDTO]
+func getHazardById(_ id: String) async throws -> HazardDTO?
+func createHazard(_ request: CreateHazardRequest) async throws -> HazardDTO
+func deleteDetection(id: String) async throws -> Void
+}
+```
+
+### 6. Build & Run
+
+Open `CurbyiOS.xcodeproj` in Xcode, select a simulator or device, and build (⌘B).
+
+---
+
+## Backend Requirements
+
+Curby iOS expects a REST API backend (default port `5049`) that provides endpoints for:
+
+- **Authentication**: Login and registration returning username, email, displayName, and deviceId
+- **Hazard CRUD**: Create, read, and delete road hazard detections
+- **Detection Data**: Hazards include type, coordinates, severity (1–5), confidence (0.0–1.0), source device ID, road segment ID, and timestamps
+
+The backend is designed to also receive automated detections from a Python-based camera segmentation pipeline (the "Curby" computer vision system) that uses YOLO models to detect road hazards from dashcam footage.
+
+---
+
+## Hazard Type System
+
+Curby supports **55+ hazard categories** organized into groups:
+
+| Category | Examples |
+|----------|----------|
+| Road Surface | Pothole, Speed Bump, Oil Stain, Construction |
+| Infrastructure | Curb, Manhole, Fire Hydrant, Utility Pole |
+| Traffic Control | Traffic Light, Traffic Cone, Stop Line |
+| Street Furniture | Bench, Trash Can, Bike Rack, Billboard |
+| Lane Markings | Crosswalk, Arrow Marking, Turn Lane |
+| Vehicles | Car, Bus, Truck, Motorcycle |
+| Barriers | Fence, Guard Rail, Barrier |
+| Points of Interest | Bus Stop, Toll Booth, Gas Station |
+
+Each type maps to a unique SF Symbol icon. The `HazardType.from(_:)` method provides three-tier fuzzy matching: exact match → case-insensitive normalization → keyword fallback.
+
+---
+
+## Route Scoring Algorithm
+
+The trip planner evaluates route safety using a weighted proximity score:
+
+1. For each hazard within **80 meters** of the route polyline:
+- `severityWeight` = max(1, hazard.severity)
+- `proximityWeight` = max(0.2, 1 − distance / 80)
+- `riskScore += severityWeight × proximityWeight`
+2. Routes are ranked by ascending risk score (ties broken by shortest travel time)
+3. The polyline distance calculation uses point-to-segment projection for accuracy
+
+---
+
+## License
+
+This project is part of an academic capstone project at Louisiana Tech University.
+
+---
+
+## Author
+
+**Isaiah Hinds** ([@zayhindss](https://github.com/zayhindss))
